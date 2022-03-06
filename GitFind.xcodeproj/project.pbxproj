@@ -62,7 +62,6 @@
 			isa = PBXGroup;
 			children = (
 				4BD4939D27D3AC55008D822F /* GitFind */,
-				4BD4939E27D3AC55008D822F /* AppDelegate.swift */,
 				4BD4939C27D3AC55008D822F /* Products */,
 				555C02CB03130D703D8FC276 /* Pods */,
 				D29322E34D4B42D378061583 /* Frameworks */,
@@ -80,6 +79,7 @@
 		4BD4939D27D3AC55008D822F /* GitFind */ = {
 			isa = PBXGroup;
 			children = (
+				4BD4939E27D3AC55008D822F /* AppDelegate.swift */,
 				4BD493B327D3AE83008D822F /* Screens */,
 				4BD493B527D3AE9D008D822F /* Resources */,
 				4BD493B227D3AE7D008D822F /* Core */,
