@@ -10,13 +10,11 @@ import RxSwift
 import RxRelay
 
 
-
-
 protocol FindViewModel {
     var resultRelay: BehaviorRelay<[RepositoryItemModel]> { get }
     func execute(query: String?)
     var numberOfRows: Int { get set }
-    func viewModelFor(_ indexPath: IndexPath)
+    func viewModelFor(_ indexPath: IndexPath) -> ReusableViewModel
 }
 
 class FindScreenViewModel: FindViewModel {
@@ -24,49 +22,53 @@ class FindScreenViewModel: FindViewModel {
     var resultRelay: BehaviorRelay<[RepositoryItemModel]> = .init(value: [])
     
     private let disposeBag = DisposeBag()
-    private let queryRelay = BehaviorRelay<String?>(value: nil)
+    private let queryRelay = PublishRelay<String>()
+    private var viewModels: [ReusableViewModel] = []
+    private let service = SearchService()
+    private var currentPage = 1
     var numberOfRows: Int = 0
-    
-    private var fakeData: [RepositoryItemModel] = [
-        RepositoryItemModel(name: "Treelllo",
-                            fullName: "FedorovMisha",
-                            ownerModel: OwnerPreviewModel(login: "FedorovMisha",
-                                                          avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/60353834?v=4"),
-                                                          profileUrl: URL(string: "https://api.github.com/users/FedorovMisha")!),
-                            url: URL(string: "https://github.com/FedorovMisha/treelllo")!),
-        RepositoryItemModel(name: "Treelllo",
-                            fullName: "FedorovMisha",
-                            ownerModel: OwnerPreviewModel(login: "FedorovMisha",
-                                                          avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/60353834?v=4"),
-                                                          profileUrl: URL(string: "https://api.github.com/users/FedorovMisha")!),
-                            url: URL(string: "https://github.com/FedorovMisha/treelllo")!),
-        RepositoryItemModel(name: "Treelllo",
-                            fullName: "FedorovMisha",
-                            ownerModel: OwnerPreviewModel(login: "FedorovMisha",
-                                                          avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/60353834?v=4"),
-                                                          profileUrl: URL(string: "https://api.github.com/users/FedorovMisha")!),
-                            url: URL(string: "https://github.com/FedorovMisha/treelllo")!),
-    ]
 
     init() {
         setupBind()
     }
     
     func execute(query: String? = nil) {
-        queryRelay.accept(query)
+        if let query = query, !query.isEmpty {
+            queryRelay.accept(query)
+        }
     }
 
-    func viewModelFor(_ indexPath: IndexPath) {
-        
+    func viewModelFor(_ indexPath: IndexPath) -> ReusableViewModel {
+        return viewModels[indexPath.row]
     }
 
     private func setupBind() {
-        queryRelay.map { _ -> [RepositoryItemModel] in
-            return self.fakeData
+        queryRelay.map { query -> SearchRequestModel in
+            return SearchRequestModel(query: query,
+                                      resultCount: 25,
+                                      page: self.currentPage)
+        }.flatMap {
+            self.service.search(request: $0)
+        }
+        .map {
+            $0.items.map { item -> RepositoryItemModel in
+                let owner = OwnerPreviewModel(login: item.owner.login,
+                                              avatarUrl: item.owner.avatarURL,
+                                              profileUrl: item.owner.url)
+                return RepositoryItemModel(name: item.name,
+                                           fullName: item.fullName,
+                                           ownerModel: owner,
+                                           url: item.url)
+            }
         }.subscribe(onNext: {
-            self.fakeData.append(contentsOf: $0)
-            self.numberOfRows = self.fakeData.count
-            self.resultRelay.accept(self.fakeData)
+            self.resultRelay.accept($0)
+        }).disposed(by: disposeBag)
+        
+        resultRelay.subscribe(onNext: {
+            self.numberOfRows = $0.count
+            self.viewModels = $0.map {
+                FindItemCellViewModel($0)
+            }
         }).disposed(by: disposeBag)
     }
 }

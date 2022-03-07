@@ -51,6 +51,12 @@ final class FindViewController: BaseViewController {
         tableView.separatorStyle = .none
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.estimatedRowHeight = UITableView.automaticDimension
+        tableView.register(FindItemCell.self, forCellReuseIdentifier: "Cell")
+        
+        SearchService().search(request: SearchRequestModel(query: "treelllo", resultCount: 25, page: 1)).subscribe(onSuccess: { _ in
+            print("Ok")
+        })
     }
 
     private func setupLayout() {
@@ -97,8 +103,18 @@ extension FindViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = UITableViewCell(style: .default, reuseIdentifier: "Cell")
-        cell.backgroundColor = indexPath.row % 2 == 0 ? .systemBlue: .systemPink
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
+        let model = viewModel.viewModelFor(indexPath)
+        model.setup(any: cell)
         return cell
+    }
+
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        cell.transform = CGAffineTransform(translationX: -1000, y: 0)
+        cell.alpha = 0
+        UIView.animate(withDuration: 0.6, animations: {
+            cell.transform = CGAffineTransform.identity
+            cell.alpha = 1
+        })
     }
 }

@@ -9,4 +9,5 @@ target 'GitFind' do
     pod 'RxSwift'
     pod 'RxCocoa'
     pod 'Moya'
+    pod 'Kingfisher'
 end
